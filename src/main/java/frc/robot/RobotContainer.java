@@ -73,7 +73,7 @@ public class RobotContainer {
   private DoubleArraySubscriber m_configurationSubscription;
 
   /* Somewhat hacky */
-  public static double JTS_driveMultiplier = 1.00;
+  public static double JTS_driveMultiplier = 0.10;
   public static double JTS_configDouble1 = 0.0;
   public static double JTS_configDouble2 = 0.0;
   public static double JTS_configDouble3 = 0.0;
@@ -106,7 +106,7 @@ public class RobotContainer {
     NamedCommands.registerCommand("marker2", Commands.print("Passed marker 2"));
     NamedCommands.registerCommand("print hello", Commands.print("hello"));
 
-    autoChooser = AutoBuilder.buildAutoChooser(); // Default auto will be `Commands.none()`
+    autoChooser = AutoBuilder.buildAutoChooser("Auto One"); // Default auto will be `Commands.none()`
     SmartDashboard.putData("Auto Mode", autoChooser);
 
     SmartDashboard.putNumber("rotationAxis", rotationAxis);

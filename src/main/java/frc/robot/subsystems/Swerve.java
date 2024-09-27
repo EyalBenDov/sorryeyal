@@ -73,11 +73,11 @@ public class Swerve extends SubsystemBase {
 
     // Configure AutoBuilder
     AutoBuilder.configureHolonomic(
-        this::getPose,
-        this::resetPoseEstimator,
+        this::getPose, // good
+        this::resetPoseEstimator, // try with reseting to absolute
         this::getSpeeds,
-        this::driveRobotRelative,
-        Constants.Swerve.pathFollowerConfig,
+        this::auto_driver, // good
+        Constants.Swerve.pathFollowerConfig, 
         () -> {
           // Boolean supplier that controls when the path will be mirrored for the red
           // alliance
@@ -97,19 +97,53 @@ public class Swerve extends SubsystemBase {
 
   }
 
-  public void driveFieldRelative(ChassisSpeeds fieldRelativeSpeeds) {
-    driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, getPose().getRotation()));
-  }
+  /*
+   * OLD, BROKEN: Using drive() instead
+   */
+  // public void driveFieldRelative(ChassisSpeeds fieldRelativeSpeeds) {
+  //   driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, getPose().getRotation()));
+  // }
 
-  public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
-    ChassisSpeeds targetSpeeds = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
-    SwerveModuleState[] targetStates = Constants.Swerve.swerveKinematics.toSwerveModuleStates(targetSpeeds);
-    setStates(targetStates);
+  // public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
+  //   ChassisSpeeds targetSpeeds = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
+  //   SwerveModuleState[] targetStates = Constants.Swerve.swerveKinematics.toSwerveModuleStates(targetSpeeds);
+  //   setStates(targetStates);
+  // }
+  public void auto_driver(ChassisSpeeds speeds){
+    SwerveModuleState[] swervystates = Constants.Swerve.swerveKinematics.toSwerveModuleStates(speeds);
+    SwerveDriveKinematics.desaturateWheelSpeeds(swervystates, Constants.Swerve.maxSpeed);
+     for (SwerveModule mod : mSwerveMods) {
+      if (!JTS_driveEnabled) {
+        swervystates[mod.moduleNumber].speedMetersPerSecond = 0;
+      }
+      if (!Constants.JTS_useCAN)
+        continue;
+      if (mod.moduleNumber > 3)
+        continue;
+    // Module 0 [FL] is good (no clatter on accel/decel)
+      if (mod.moduleNumber == 99)
+        continue;
+    // Module 1 [FR] is good (no clatter on accel/decel)
+      if (mod.moduleNumber == 99)
+        continue;
+    // Module 2 [BL] is good (no clatter on accel/decel)
+      if (mod.moduleNumber == 99)
+        continue;
+    // Module 3 [BR] is good (no clatter on accel/decel)
+      if (mod.moduleNumber == 99)
+        continue;
+      
+      // Slow things down for now.
+      if (Constants.JTS_true)
+        swervystates[mod.moduleNumber].speedMetersPerSecond *= RobotContainer.JTS_driveMultiplier;
+
+      mod.setDesiredState(swervystates[mod.moduleNumber], true); //idk maybe try false-- 50/50 chance I'm right
+    }
   }
 
   public void drive(Translation2d translation, double rotation, boolean fieldRelative, boolean isOpenLoop) {
     SwerveModuleState[] swerveModuleStates = Constants.Swerve.swerveKinematics.toSwerveModuleStates(
-        fieldRelative && Constants.JTS_false   // HACK
+        fieldRelative // HACK
             ? ChassisSpeeds.fromFieldRelativeSpeeds(
                 translation.getX(), translation.getY(), rotation, getYaw())
             : new ChassisSpeeds(translation.getX(), translation.getY(), rotation));
